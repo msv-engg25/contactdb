@@ -1,33 +1,34 @@
-require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+require('dotenv').config();
 
 const app = express();
-const contactRoutes = require('./routes/contact');
+
+// Debugging env vars
+console.log('EMAIL_USER:', process.env.EMAIL_USER ? 'Loaded' : 'Missing');
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS ? 'Loaded' : 'Missing');
+console.log('EMAIL_TO:', process.env.EMAIL_TO ? 'Loaded' : 'Missing');
+
+// Check critical env vars
+if (!process.env.MONGO_URI) {
+  console.error('❌ MONGO_URI not defined in .env');
+  process.exit(1);
+}
 
 // Middleware
 app.use(cors());
 app.use(express.json());
 
 // Routes
+const contactRoutes = require('./routes/contact'); // Make sure this file exists
 app.use('/api/contact', contactRoutes);
 
-// MongoDB Connection
-const mongoURI = process.env.MONGO_URI;
-const port = process.env.PORT || 5000;
+// DB Connection
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB connection error:', err));
 
-if (!mongoURI || !process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-  console.error("❌ Missing environment variables. Check your .env file.");
-  process.exit(1);
-}
-
-mongoose.connect(mongoURI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
-}).then(() => {
-  console.log('✅ MongoDB connected');
-  app.listen(port, () => console.log(`🚀 Server running on http://localhost:${port}`));
-}).catch(err => {
-  console.error('❌ MongoDB connection error:', err);
-});
+// Start server
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
